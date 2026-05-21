@@ -1,5 +1,8 @@
 #include "Server.h"
 #include "Logger.h"
+#include "RequestParser.h"
+#include "ResponseBuilder.h"
+#include "FileReader.h"
 #include <iostream>
 #include <ws2tcpip.h>
 
@@ -82,20 +85,41 @@ void Server::run() {
 
 void Server::handleClient(SOCKET clientSocket) {
 	char buffer[4096];
-	recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+	int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+	if (bytesReceived <= 0) {
+		closesocket(clientSocket);
+		return;
+	}
+	buffer[bytesReceived] = '\0';
+	std::string requestStr(buffer);
 
-	std::string html = "<!DOCTYPE html><html><body><h1>Hello world!</h1></body></html>";
-	std::string response =
-		"HTTP/1.1 200 OK\r\n"
-		"Content-Type: text/html\r\n"
-		"Content-Length: " + std::to_string(html.size()) + "\r\n"
-		"Connection: close\r\n"
-		"\r\n" + html;
+	HttpRequest request;
+	if (!RequestParser::parse(requestStr, request)) {
+		std::string response = ResponseBuilder::buildError(400, "Bad request");
+		send(clientSocket, response.c_str(), response.size(), 0);
+		shutdown(clientSocket, SD_SEND);
+		closesocket(clientSocket);
+		return;
+	}
 
-	send(clientSocket, response.c_str(), response.size(), 0);
-	
+	const std::string baseDir = "www";
+	std::string relativePath = request.path;
+	if (relativePath == "/") relativePath = "/index.html";
+	std::string fullPath = FileReader::sanitizePath(baseDir, relativePath);
+
+	std::vector<char> fileData;
+	if (!fullPath.empty() && FileReader::exists(fullPath) && FileReader::readFile(fullPath, fileData)) {
+		std::string mime = FileReader::getMimeType(fullPath);
+		std::string response = ResponseBuilder::buildSuccess(mime, fileData);
+		send(clientSocket, response.c_str(), response.size(), 0);
+		Logger::instance().log("200 " + request.path);
+	}
+	else {
+		std::string response = ResponseBuilder::buildError(404, "Not found");
+		send(clientSocket, response.c_str(), response.size(), 0);
+		Logger::instance().log("404 " + request.path);
+	}
+
 	shutdown(clientSocket, SD_SEND);
 	closesocket(clientSocket);
-
-	Logger::instance().log("Response sent, connection closed");
 }
