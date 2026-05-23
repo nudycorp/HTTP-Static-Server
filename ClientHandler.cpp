@@ -5,47 +5,96 @@
 #include "FileReader.h"
 #include <vector>
 #include <string>
+#include <cstring>
 
 ClientHandler::ClientHandler(SOCKET clientSocket) : clientSocket(clientSocket) {}
 
-void ClientHandler::handle() {
-    // Читаем запрос
+void ClientHandler::setSocketTimeout(int seconds) {
+    DWORD timeout = seconds * 1000;
+    setsockopt(clientSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+}
+
+bool ClientHandler::readRequest(std::string& request) {
     char buffer[4096];
-    int bytesReceived = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
-    if (bytesReceived <= 0) {
-        closesocket(clientSocket);
-        return;
-    }
-    buffer[bytesReceived] = '\0';
-    std::string requestStr(buffer);
+    std::string data;
+    while (true) {
+        int bytes = recv(clientSocket, buffer, sizeof(buffer) - 1, 0);
+        if (bytes <= 0) {
+            if (bytes == 0) Logger::instance().log("Client closed connection");
+            else {
+                int err = WSAGetLastError();
+                if (err != WSAETIMEDOUT) Logger::instance().log("Recv error: " + std::to_string(err));
+            }
 
-    // Парсим
-    HttpRequest request;
-    if (!RequestParser::parse(requestStr, request)) {
-        std::string response = ResponseBuilder::buildError(400, "Bad Request");
-        send(clientSocket, response.c_str(), response.size(), 0);
-        shutdown(clientSocket, SD_SEND);
-        closesocket(clientSocket);
-        return;
-    }
+            return false;
+        }
 
-    // Формируем путь к файлу
-    const std::string baseDir = "www";
-    std::string relativePath = request.path;
-    if (relativePath == "/") relativePath = "/index.html";
-    std::string fullPath = FileReader::sanitizePath(baseDir, relativePath);
+        buffer[bytes] = '\0';
+        data += buffer;
+        if (data.find("\r\n\r\n") != std::string::npos) {
+            request = data;
+            return true;
+        }
 
-    std::vector<char> fileData;
-    if (!fullPath.empty() && FileReader::exists(fullPath) && FileReader::readFile(fullPath, fileData)) {
-        std::string mime = FileReader::getMimeType(fullPath);
-        std::string response = ResponseBuilder::buildSuccess(mime, fileData);
-        send(clientSocket, response.c_str(), response.size(), 0);
-        Logger::instance().log("200 " + request.path);
+        if (data.size() > 8192) return false;
     }
-    else {
-        std::string response = ResponseBuilder::buildError(404, "Not Found");
-        send(clientSocket, response.c_str(), response.size(), 0);
-        Logger::instance().log("404 " + request.path);
+}
+
+void ClientHandler::sendResponse(const std::string& response) {
+    size_t total = 0;
+    while (total < response.size()) {
+        int sent = send(clientSocket, response.c_str() + total, response.size() - total, 0);
+        if (sent <= 0) break;
+        total += sent;
+    }
+}
+
+void ClientHandler::handle() {
+    bool keepAlive = true;
+    int requestCount = 0;
+    const int MAX_REQUESTS = 100;
+    const int TIMEOUT_SECONDS = 5;
+
+    while (keepAlive && requestCount < MAX_REQUESTS) {
+        if (requestCount > 0) {
+            setSocketTimeout(TIMEOUT_SECONDS);
+        }
+
+        std::string rawRequest;
+        if (!readRequest(rawRequest)) {
+            break;
+        }
+
+        HttpRequest request;
+        if (!RequestParser::parse(rawRequest, request)) {
+            std::string response = ResponseBuilder::buildError(400, "Bad Request", false);
+            sendResponse(response);
+            break;
+        }
+
+        bool wantKeepAlive = (rawRequest.find("Connection: close") == std::string::npos);
+
+        const std::string baseDir = "www";
+        std::string relativePath = request.path;
+        if (relativePath == "/") relativePath = "/index.html";
+        std::string fullPath = FileReader::sanitizePath(baseDir, relativePath);
+
+        std::vector<char> fileData;
+        if (!fullPath.empty() && FileReader::exists(fullPath) && FileReader::readFile(fullPath, fileData)) {
+            std::string mime = FileReader::getMimeType(fullPath);
+            std::string response = ResponseBuilder::buildSuccess(mime, fileData, wantKeepAlive);
+            sendResponse(response);
+            Logger::instance().log("200 " + request.path);
+            keepAlive = wantKeepAlive;
+        }
+        else {
+            std::string response = ResponseBuilder::buildError(404, "Not Found", false);
+            sendResponse(response);
+            Logger::instance().log("404 " + request.path);
+            break;
+        }
+
+        requestCount++;
     }
 
     shutdown(clientSocket, SD_SEND);

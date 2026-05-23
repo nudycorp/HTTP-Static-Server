@@ -4,6 +4,6 @@
 
 class ResponseBuilder {
 public:
-	static std::string buildSuccess(const std::string& mimeType, const std::vector<char>& data);
-	static std::string buildError(int code, const std::string& message);
+	static std::string buildSuccess(const std::string& mimeType, const std::vector<char>& data, bool keepAlive = false);
+	static std::string buildError(int code, const std::string& message, bool keepAlive = false);
 };
