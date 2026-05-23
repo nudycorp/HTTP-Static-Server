@@ -16,5 +16,4 @@ private:
 	SOCKET serverSocket;
 	bool running;
 	std::unique_ptr<ThreadPool> pool;
-	void handleClient(SOCKET clientSocket);
 };
