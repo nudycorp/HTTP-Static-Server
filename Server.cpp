@@ -8,7 +8,9 @@
 
 #pragma comment(lib, "ws2_32.lib")
 
-Server::Server(int port) : port(port), serverSocket(INVALID_SOCKET), running(false) {}
+Server::Server(int port) : port(port), serverSocket(INVALID_SOCKET), running(false) {
+	pool = std::make_unique<ThreadPool>(4);
+}
 
 Server::~Server() {
 	stop();
@@ -79,7 +81,9 @@ void Server::run() {
 		}
 
 		Logger::instance().log("Client connected");
-		handleClient(clientSocket);
+		pool->enqueue([this, clientSocket]() {
+			handleClient(clientSocket);
+		});
 	}
 }
 
