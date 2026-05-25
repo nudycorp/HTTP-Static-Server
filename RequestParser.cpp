@@ -8,7 +8,7 @@ bool RequestParser::parse(const std::string& rawRequest, HttpRequest& outRequest
 	std::istringstream lineStream(line);
 	lineStream >> outRequest.method >> outRequest.path >> outRequest.version;
 
-	if (outRequest.method != "GET") return false;
+	if (outRequest.method != "GET" && outRequest.method != "HEAD") return false;
 
 	size_t qpos = outRequest.path.find('?');
 	if (qpos != std::string::npos) outRequest.path = outRequest.path.substr(0, qpos);

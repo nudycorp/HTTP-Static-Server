@@ -80,11 +80,13 @@ void ClientHandler::handle() {
         std::string fullPath = FileReader::sanitizePath(baseDir, relativePath);
 
         std::vector<char> fileData;
-        if (!fullPath.empty() && FileReader::exists(fullPath) && FileReader::readFile(fullPath, fileData)) {
+        bool fileExists = !fullPath.empty() && FileReader::exists(fullPath);
+        if (fileExists) {
             std::string mime = FileReader::getMimeType(fullPath);
-            std::string response = ResponseBuilder::buildSuccess(mime, fileData, wantKeepAlive);
+            if (request.method == "GET") FileReader::readFile(fullPath, fileData);
+            std::string response = ResponseBuilder::buildSuccess(mime, fileData, wantKeepAlive, request.method == "HEAD");
             sendResponse(response);
-            Logger::instance().log("200 " + request.path);
+            Logger::instance().log("200 " + request.path + " (" + request.method + ")");
             keepAlive = wantKeepAlive;
         }
         else {

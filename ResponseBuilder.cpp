@@ -1,7 +1,7 @@
 #include "ResponseBuilder.h"
 #include <sstream>
 
-std::string ResponseBuilder::buildSuccess(const std::string& mimeType, const std::vector<char>& data, bool keepAlive) {
+std::string ResponseBuilder::buildSuccess(const std::string& mimeType, const std::vector<char>& data, bool keepAlive, bool isHead) {
 	std::ostringstream response;
 	response << "HTTP/1.1 200 OK\r\n";
 	response << "Content-Type: " << mimeType << "\r\n";
@@ -14,7 +14,9 @@ std::string ResponseBuilder::buildSuccess(const std::string& mimeType, const std
 		response << "Connection: close\r\n";
 	}
 	response << "\r\n";
-	response.write(data.data(), data.size());
+
+	if (!isHead) response.write(data.data(), data.size());
+
 	return response.str();
 }
 
