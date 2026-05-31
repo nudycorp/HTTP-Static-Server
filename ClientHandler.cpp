@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <cstring>
+#include <sstream>
 
 ClientHandler::ClientHandler(SOCKET clientSocket) : clientSocket(clientSocket) {}
 
@@ -73,6 +74,7 @@ void ClientHandler::handle() {
         const std::string baseDir = "www";
         std::string relativePath = request.path;
 
+
         if (request.path == "/files" && request.method == "GET") {
             std::string json = FileReader::listFilesAsJSON(baseDir);
             std::vector<char> data(json.begin(), json.end());
@@ -111,6 +113,7 @@ void ClientHandler::handle() {
         }
         else if (request.path == "/delete" && request.method == "DELETE") {
             auto it = request.queryParams.find("file");
+            
             if (it == request.queryParams.end()) {
                 std::string response = ResponseBuilder::buildError(400, "Missing file param", false);
                 sendResponse(response);
@@ -118,7 +121,7 @@ void ClientHandler::handle() {
                 break;
             }
 
-            std::string fileParam = it->second;
+            std::string fileParam = urlDecode(it->second);
             if (!FileReader::isPathSafe(baseDir, fileParam)) {
                 std::string response = ResponseBuilder::buildError(400, "Forbidden", false);
                 sendResponse(response);
@@ -167,4 +170,21 @@ void ClientHandler::handle() {
 
     shutdown(clientSocket, SD_SEND);
     closesocket(clientSocket);
+}
+
+std::string ClientHandler::urlDecode(const std::string& src) {
+    std::string res;
+    for (size_t i = 0; i < src.size(); ++i) {
+        if (src[i] == '%' && i + 2 < src.size()) {
+            int val;
+            std::istringstream iss(src.substr(i + 1, 2));
+            if (iss >> std::hex >> val)
+                res += static_cast<char>(val);
+            i += 2;
+        }
+        else {
+            res += src[i];
+        }
+    }
+    return res;
 }

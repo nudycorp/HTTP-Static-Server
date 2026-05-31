@@ -2,58 +2,77 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>C++ HTTP Server</title>
+    <title>C++ HTTP Server - File Manager</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Cinema+Decorative&family=Special+Elite&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="noise"></div>
-    <div class="overlay"></div>
-    
-    <header class="cracked-header">
-        <h1 class="glitch" data-text="[ server ]">[ server ]</h1>
-        <p class="subtitle">|| http://localhost:8080 || C++ || RAW sockets ||</p>
-        <div class="pentagram"></div>
-    </header>
+    <div class="dashboard">
+        <h1>⚙️ C++ HTTP Server <span>localhost:8080</span></h1>
+        <p class="sub">multithreaded · keep-alive · static files · HEAD · file API</p>
 
-    <main>
-        <section class="features">
-            <div class="feature-card torn">
-                <div class="blood-drop"></div>
-                <h2>multi‑threading</h2>
-                <p>thread pool // concurrent requests</p>
-            </div>
-            <div class="feature-card torn">
-                <h2>keep‑alive</h2>
-                <p>persistent connections // timeout 5s // max 100 requests</p>
-            </div>
-            <div class="feature-card torn">
-                <h2>HEAD method</h2>
-                <p>metadata without body</p>
-            </div>
-            <div class="feature-card torn">
-                <h2>static files</h2>
-                <p>html/css/js/images // mime types // 404 abyss</p>
-            </div>
-        </section>
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="files">Файловый менеджер</button>
+            <button class="tab-btn" data-tab="api">API примеры</button>
+            <button class="tab-btn" data-tab="inspector">Инспектор</button>
+        </div>
 
-        <section class="test-area">
-            <div class="grimoire">
-                <h3>›› file info ‹‹</h3>
-                <input type="text" id="filePath" placeholder="/style.css" value="/style.css">
-                <button id="fetchBtn">INVOKE</button>
-                <div id="result" class="result-box">
-                    <span class="cursor">❯_ waiting...</span>
+        <div id="tab-files" class="tab-content active">
+            <div class="card">
+                <h2>Файлы на сервере</h2>
+                <button id="refresh-files" class="sec-btn">Обновить список</button>
+                <div id="file-list-container">
+                    <ul id="file-list" class="file-list-api"><li>Нажмите "Обновить"</li></ul>
                 </div>
             </div>
-        </section>
+        </div>
 
-        <footer class="cracked-footer">
-            <p>© 2026 - void::server running on port 8080</p>
-        </footer>
-    </main>
+        <div id="tab-api" class="tab-content">
+            <div class="card">
+                <h2>Взаимодействие с сервером через curl</h2>
+                <p>Сервер поддерживает следующие API-команды (файловый менеджер):</p>
+                <ul>
+                    <li><strong>Получить список файлов</strong><br>
+                        <code>curl http://localhost:8080/files</code>
+                    </li>
+                    <li><strong>Загрузить файл</strong><br>
+                        <code>curl -X POST -d "содержимое" http://localhost:8080/upload</code><br>
+                        <span class="note">(файл сохранится в <code>www/uploads/upload_&lt;timestamp&gt;.dat</code>)</span>
+                    </li>
+                    <li><strong>Загрузить бинарный файл</strong><br>
+                        <code>curl --data-binary "@myfile.jpg" http://localhost:8080/upload</code>
+                    </li>
+                    <li><strong>Удалить файл</strong><br>
+                        <code>curl -X DELETE "http://localhost:8080/delete?file=uploads/upload_123.dat"</code>
+                    </li>
+                </ul>
+                <p class="note">Все команды возвращают JSON-ответ.</p>
+            </div>
+        </div>
 
+        <div id="tab-inspector" class="tab-content">
+            <div class="card">
+                <h2>GET / HEAD инспектор</h2>
+                <div class="url-bar">
+                    <input type="text" id="req-path" placeholder="/index.html" value="/index.html">
+                    <select id="req-method">
+                        <option value="GET">GET (тело)</option>
+                        <option value="HEAD">HEAD (только заголовки)</option>
+                    </select>
+                    <button id="send-request">➤ Отправить</button>
+                </div>
+                <div id="response-area" class="response-area">
+                    <pre id="response-headers"></pre>
+                    <div id="response-body"></div>
+                </div>
+            </div>
+        </div>
+
+        
+    </div>
+    <footer>
+        <p>keep-alive активен · соединения не закрываются до timeout 5с · максимум 100 req</p>
+    </footer>
     <script src="script.js"></script>
 </body>
 </html>
