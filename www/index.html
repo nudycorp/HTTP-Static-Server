@@ -1,12 +1,59 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>My C++ Server</title>
-    <link rel="stylesheet" type="text/css" href="/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>C++ HTTP Server</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinema+Decorative&family=Special+Elite&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>It works!</h1>
-    <p>This file is served from www/index.html</p>
-    <img src="/test.jpg" alt="image" style="max-width:200px;">
+    <div class="noise"></div>
+    <div class="overlay"></div>
+    
+    <header class="cracked-header">
+        <h1 class="glitch" data-text="[ server ]">[ server ]</h1>
+        <p class="subtitle">|| http://localhost:8080 || C++ || RAW sockets ||</p>
+        <div class="pentagram"></div>
+    </header>
+
+    <main>
+        <section class="features">
+            <div class="feature-card torn">
+                <div class="blood-drop"></div>
+                <h2>multi‑threading</h2>
+                <p>thread pool // concurrent requests</p>
+            </div>
+            <div class="feature-card torn">
+                <h2>keep‑alive</h2>
+                <p>persistent connections // timeout 5s // max 100 requests</p>
+            </div>
+            <div class="feature-card torn">
+                <h2>HEAD method</h2>
+                <p>metadata without body</p>
+            </div>
+            <div class="feature-card torn">
+                <h2>static files</h2>
+                <p>html/css/js/images // mime types // 404 abyss</p>
+            </div>
+        </section>
+
+        <section class="test-area">
+            <div class="grimoire">
+                <h3>›› file info ‹‹</h3>
+                <input type="text" id="filePath" placeholder="/style.css" value="/style.css">
+                <button id="fetchBtn">INVOKE</button>
+                <div id="result" class="result-box">
+                    <span class="cursor">❯_ waiting...</span>
+                </div>
+            </div>
+        </section>
+
+        <footer class="cracked-footer">
+            <p>© 2026 - void::server running on port 8080</p>
+        </footer>
+    </main>
+
+    <script src="script.js"></script>
 </body>
 </html>
