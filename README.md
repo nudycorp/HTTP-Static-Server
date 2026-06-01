@@ -44,6 +44,8 @@ http_server/
 └── server.log # создаётся автоматически
 ```
 
+![UML Diagram](UML.png "UML")
+
 ## 🔧 Сборка и запуск (Visual Studio)
 
 1. Откройте проект в Visual Studio (2017+).
